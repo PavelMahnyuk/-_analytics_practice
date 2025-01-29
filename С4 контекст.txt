@@ -1,0 +1,46 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(customer, "Покупатель")
+Person(employee, "Сотрудник")
+
+System_Boundary(marketplace, "E-commerce Marketplace") {
+    System(api_gateway, "API Gateway", "Централизованный запрос в систему")
+    System(product_catalog, "Product Catalog", "Каталог товаров")
+    System(inventory_service, "Inventory Service", "Управление запасами")
+    System(order_service, "Order Service", "Оформление заказов")
+    System(delivery_service, "Delivery Service", "Логистика и доставка")
+    System(notification_service, "Notification Service", "Оповещения клиентов и сотрудников")
+    System(client_service, "Client Service", "Управление данными клиентов")
+    System(employee_service, "Employee Service", "Управление данными сотрудников")
+    System(payment_service, "Payment Service", "Обработка платежей")
+    System(analytics_service, "Analytics Service", "Аналитика данных")
+    System(log_service, "Log Service", "Логирование и мониторинг")
+}
+
+
+Rel(customer, api_gateway, "HTTPS")
+Rel(employee, api_gateway, "HTTPS")
+
+Rel(api_gateway, product_catalog, "")
+Rel(api_gateway, inventory_service, "")
+Rel(api_gateway, order_service, "")
+Rel(api_gateway, delivery_service, "")
+Rel(api_gateway, notification_service, "")
+Rel(api_gateway, client_service, "")
+Rel(api_gateway, employee_service, "")
+Rel(api_gateway, payment_service, "")
+Rel(api_gateway, analytics_service, "")
+Rel(api_gateway, log_service, "")
+
+Rel(order_service, inventory_service, "Проверка остатков", "Kafka")
+Rel(order_service, payment_service, "Оплата заказа", "Kafka")
+Rel(payment_service, notification_service, "Уведомление об оплате", "Kafka")
+Rel(order_service, delivery_service, "Запрос на доставку", "Kafka")
+Rel(delivery_service, notification_service, "Уведомление о доставке", "Kafka")
+Rel(inventory_service, analytics_service, "Данные об остатках", "Kafka")
+Rel(order_service, analytics_service, "Данные о заказах", "Kafka")
+Rel(api_gateway, log_service, "Логирование запросов", "Kafka")
+
+
+@enduml
