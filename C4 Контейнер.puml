@@ -1,0 +1,92 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context diagram for E-commerce Marketplace
+
+' Основные пользователи
+Person(customer, "Покупатель", "Клиент, совершающий покупки")
+Person(employee, "Сотрудник", "Менеджер магазина или склада")
+
+' Границы системы
+System_Boundary(marketplace, "E-commerce Marketplace") {
+    System_Boundary(sales_domain, "Sales Domain") {
+        System(product_catalog, "Product Catalog", "Каталог товаров")
+        ContainerDb(product_db, "MongoDB", "Хранение товаров, отзывов, изображений")
+        
+        System(order_service, "Order Service", "Оформление заказов")
+        ContainerDb(order_db, "PostgreSQL", "Заказы, статусы, история")
+        
+        System(payment_service, "Payment Service", "Обработка платежей")
+        ContainerDb(payment_db, "PostgreSQL", "Транзакции, возвраты")
+    }
+    
+    System_Boundary(inventory_domain, "Inventory & Logistics Domain") {
+        System(inventory_service, "Inventory Service", "Управление запасами")
+        ContainerDb(inventory_db, "PostgreSQL", "Остатки, резервы, перемещения")
+        
+        System(delivery_service, "Delivery Service", "Логистика и доставка")
+        ContainerDb(delivery_postgres, "PostgreSQL", "Данные доставок")
+        ContainerDb(delivery_mongo, "MongoDB", "Трекинг-информация")
+        ContainerDb(delivery_neo4j, "Neo4j", "Оптимизация маршрутов")
+    }
+    
+    System_Boundary(user_management, "User Management Domain") {
+        System(client_service, "Client Service", "Управление данными клиентов")
+        ContainerDb(client_postgres, "PostgreSQL", "Профили клиентов")
+        ContainerDb(client_redis, "Redis", "Сессии, кэш")
+        
+        System(employee_service, "Employee Service", "Управление данными сотрудников")
+        ContainerDb(employee_db, "PostgreSQL", "Данные сотрудников, роли")
+    }
+    
+    System_Boundary(analytics_domain, "Analytics & Monitoring Domain") {
+        System(analytics_service, "Analytics Service", "Аналитика данных")
+        ContainerDb(analytics_db, "ClickHouse", "Аналитические данные")
+        
+        System(log_service, "Log Service", "Логирование и мониторинг")
+        ContainerDb(log_db, "ELK Stack", "Логи, дашборды")
+    }
+    
+    System(notification_service, "Notification Service", "Оповещения клиентов и сотрудников")
+    ContainerDb(notification_db, "Redis", "Очереди уведомлений")
+    
+    System(api_gateway, "API Gateway", "Централизованный вход в систему")
+}
+
+' Внешние системы
+System_Ext(kubernetes, "Kubernetes", "Оркестрация контейнеров")
+System_Ext(kafka, "Apache Kafka", "Передача событий между сервисами")
+
+' Связи сервисов с БД
+Rel(product_catalog, product_db, "Хранит данные", "MongoDB Driver")
+Rel(order_service, order_db, "Сохраняет заказы", "SQL")
+Rel(payment_service, payment_db, "Записывает транзакции", "JDBC")
+Rel(inventory_service, inventory_db, "Обновляет остатки", "SQL")
+Rel(delivery_service, delivery_postgres, "Основное хранилище", "SQL")
+Rel(delivery_service, delivery_mongo, "Трекинг данных", "MongoDB API")
+Rel(delivery_service, delivery_neo4j, "Оптимизация маршрутов", "Cypher")
+Rel(client_service, client_postgres, "Профили клиентов", "Hibernate")
+Rel(client_service, client_redis, "Кэш сессий", "Redis CLI")
+Rel(employee_service, employee_db, "Данные сотрудников", "SQL")
+Rel(analytics_service, analytics_db, "Аналитические данные", "OLAP")
+Rel(log_service, log_db, "Сбор логов", "Logstash")
+Rel(notification_service, notification_db, "Очереди сообщений", "Pub/Sub")
+
+' Взаимодействия пользователей
+Rel(customer, api_gateway, "Использует", "HTTPS")
+Rel(employee, api_gateway, "Использует", "HTTPS")
+
+' Взаимодействие сервисов
+Rel(api_gateway, product_catalog, "Запросы каталога", "REST")
+Rel(api_gateway, order_service, "Создание заказов", "gRPC")
+Rel(order_service, inventory_service, "Проверка остатков", "Kafka")
+Rel(order_service, payment_service, "Оплата заказа", "Kafka")
+Rel(delivery_service, notification_service, "Статус доставки", "Kafka")
+
+' Инфраструктура
+Rel(kubernetes, marketplace, "Оркестрация", "Docker API")
+Rel(kafka, marketplace, "Обработка событий", "Avro")
+
+@enduml
