@@ -1,0 +1,41 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Контекстная диаграмма C4 для маркетплейса
+
+Person(cliente, "Клиент", "Покупает товары, отслеживает заказы")
+Person(employee, "Сотрудник", "Управляет запасами, анализирует отчеты")
+
+System_Boundary(marketplace, "Маркетплейс") {
+    System(products, "Товары", "Управление ассортиментом, ценами, описаниями")
+    System(inventory, "Запасы", "Мониторинг остатков, резервирование")
+    System(orders, "Заказы", "Оформление, возврат, отмена заказов")
+    System(delivery, "Доставка", "Расчет сроков/стоимости, трекинг")
+    System(payments, "Платежи", "Интеграция с банками, обработка транзакций")
+    System(analytics, "Аналитика", "Отчеты, прогнозирование спроса, KPI")
+}
+
+System_Ext(bank, "Платежная система", "Сбербанк/Тинькофф")
+System_Ext(logistics, "Служба доставки", "СДЭК/DHL")
+System_Ext(supplier, "Система поставщика", "API для синхронизации остатков")
+
+
+Rel(cliente, products, "Выбирает товар", "HTTPS")
+Rel(cliente, orders, "Оформляет заказы", "HTTPS")
+Rel(cliente, payments, "Оплачивает заказ", "API")
+Rel(cliente, delivery, "Отслеживает доставку", "Мобильное приложение")
+Rel(employee, products, "Управляет ассортиментом товаров", "Веб-интерфейс")
+Rel(employee, inventory, "Управляет запасами", "Веб-интерфейс")
+Rel(employee, analytics, "Анализирует отчеты", "Dashboard")
+
+Rel(orders, inventory, "Резервирует товары", "Kafka")
+Rel(orders, delivery, "Инициирует доставку", "Kafka")
+Rel(orders, payments, "Запрашивает оплату", "REST API")
+
+Rel(inventory, supplier, "Синхронизирует остатки", "API")
+Rel(payments, bank, "Проводит транзакции")
+Rel(delivery, logistics, "Передает данные для доставки", "API")
+
+@enduml
