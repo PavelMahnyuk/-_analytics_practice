@@ -6,36 +6,69 @@ LAYOUT_WITH_LEGEND()
 title Контекстная диаграмма C4 для маркетплейса
 
 Person(cliente, "Клиент", "Покупает товары, отслеживает заказы")
-Person(employee, "Сотрудник", "Управляет запасами, анализирует отчеты")
 
 System_Boundary(marketplace, "Маркетплейс") {
-    System(products, "Товары", "Управление ассортиментом, ценами, описаниями")
-    System(inventory, "Запасы", "Мониторинг остатков, резервирование")
-    System(orders, "Заказы", "Оформление, возврат, отмена заказов")
-    System(delivery, "Доставка", "Расчет сроков/стоимости, трекинг")
-    System(payments, "Платежи", "Интеграция с банками, обработка транзакций")
-    System(analytics, "Аналитика", "Отчеты, прогнозирование спроса, KPI")
+    ' Домен пользователей
+    System_Boundary(user_domain, "User Domain") {
+        System(user_service, "User Service", "Управление пользователями, аутентификация, роли")
+    }
+    
+    ' Домен продаж
+    System_Boundary(sales_domain, "Sales Domain") {
+        System(product_catalog, "Product Catalog", "Каталог товаров, цены, описания")
+        System(order_service, "Order Service", "Оформление и управление заказами")
+        System(payment_service, "Payment Service", "Обработка платежей и возвратов")
+    }
+    
+    ' Логистический домен
+    System_Boundary(logistic_domain, "Logistic Domain") {
+        System(inventory_service, "Inventory Service", "Управление запасами и резервирование")
+        System(delivery_service, "Delivery Service", "Расчет доставки и трекинг")
+    }
+    
+    ' Аналитический домен
+    System_Boundary(analytic_domain, "Analytic Domain") {
+        System(analytic_service, "Analytic Service", "Аналитика и отчетность")
+        System(log_service, "Log Service", "Сбор и анализ логов")
+    }
+    
+    ' Недоменный сервис
+    System(notification_service, "Notification Service", "Рассылка уведомлений")
 }
 
+' Внешние системы
 System_Ext(bank, "Платежная система", "Сбербанк/Тинькофф")
-System_Ext(logistics, "Служба доставки", "СДЭК/DHL")
+System_Ext(logistics, "Служба доставки", "СДЭК/Почта России")
 System_Ext(supplier, "Система поставщика", "API для синхронизации остатков")
 
+' Основные взаимодействия с клиентом
+Rel(cliente, user_service, "Авторизация", "HTTPS")
+Rel(cliente, product_catalog, "Просмотр товаров", "HTTPS")
+Rel(cliente, order_service, "Оформление заказа", "HTTPS")
+Rel(cliente, payment_service, "Оплата заказа", "HTTPS")
+Rel(cliente, delivery_service, "Отслеживание доставки", "HTTPS")
 
-Rel(cliente, products, "Выбирает товар", "HTTPS")
-Rel(cliente, orders, "Оформляет заказы", "HTTPS")
-Rel(cliente, payments, "Оплачивает заказ", "API")
-Rel(cliente, delivery, "Отслеживает доставку", "Мобильное приложение")
-Rel(employee, products, "Управляет ассортиментом товаров", "Веб-интерфейс")
-Rel(employee, inventory, "Управляет запасами", "Веб-интерфейс")
-Rel(employee, analytics, "Анализирует отчеты", "Dashboard")
+' Автоматизированные бизнес-процессы
+Rel(analytic_service, inventory_service, "Автопополнение запасов", "Kafka") 
 
-Rel(orders, inventory, "Резервирует товары", "Kafka")
-Rel(orders, delivery, "Инициирует доставку", "Kafka")
-Rel(orders, payments, "Запрашивает оплату", "REST API")
+' Взаимодействия между сервисами
+Rel(order_service, inventory_service, "Проверка и резервирование", "Kafka")
+Rel(order_service, payment_service, "Инициирование оплаты", "REST API")
+Rel(order_service, delivery_service, "Запрос доставки", "Kafka")
+Rel(order_service, notification_service, "Статус заказа", "Kafka")
 
-Rel(inventory, supplier, "Синхронизирует остатки", "API")
-Rel(payments, bank, "Проводит транзакции")
-Rel(delivery, logistics, "Передает данные для доставки", "API")
+Rel(inventory_service, supplier, "Синхронизация остатков", "Rest API")
+Rel(payment_service, bank, "Проведение транзакций", "PCI-DSS")
+Rel(delivery_service, logistics, "Данные для доставки", "JSON API")
+
+Rel(user_service, order_service, "Отправка данных пользователя", "JWT")
+Rel(product_catalog, analytic_service, "Передача данных о просмотрах", "Kafka")
+Rel(order_service, analytic_service, "Передача данных о заказах", "Kafka")
+
+
+' Уведомления
+Rel(payment_service, notification_service, "Уведомление об оплате", "Kafka")
+Rel(delivery_service, notification_service, "Статус доставки", "Kafka")
+Rel(notification_service, cliente, "Отправка уведомлений", "WebHook")
 
 @enduml
