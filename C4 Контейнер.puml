@@ -7,16 +7,15 @@ title Диаграмма контейнеров C4 для маркетплейс
 
 Person(customer, "Покупатель", "Клиент, совершающий покупки")
 
-System_Ext(kubernetes, "Kubernetes", "Оркестрация контейнеров")
-System_Ext(kafka, "Apache Kafka", "Передача событий между сервисами")
-Rel(kubernetes, marketplace, "Оркестрация")
-Rel(kafka, marketplace, "Обработка событий")
 
+System_Boundary(OutSider_Serbice, "Внешние сервисы"){
+
+    System_Ext(bank, "Платежная система", "Сбербанк/Тинькофф")
+System_Ext(logistics, "Служба доставки", "СДЭК/Почта России")
+System_Ext(supplier, "Система поставщика", "API")
+}
 
 System_Boundary(marketplace, "E-commerce Marketplace") {
-  
-  
-  
 ' Домен пользователей
 System_Boundary(user_domain, "User Domain") {
     System(user_service, "User Service", "Обрабатывает авторизацию и профили")
@@ -49,7 +48,6 @@ System_Boundary(user_domain, "User Domain") {
     }
 }
 }
-
 
 ' Взаимодействие User Service -> Gateway
 Rel(user_service, redis_gateway, "Кэш сессий")
@@ -105,10 +103,7 @@ Rel(recom_master, recom_slave2, "Асинхронная\nрепликация")
     System(api_gateway, "API Gateway", "NGINX")
 
 
-' Внешние системы
-System_Ext(bank, "Платежная система", "Сбербанк/Тинькофф")
-System_Ext(logistics, "Служба доставки", "СДЭК/Почта России")
-System_Ext(supplier, "Система поставщика", "API")
+
 
 ' Связи сервисов с БД
 Rel(product_catalog, product_db, "Хранит данные")
@@ -148,5 +143,15 @@ Rel(analytics_service, inventory_service, "Автопополнение запа
 Rel(payment_service, notification_service, "Статус оплаты", "Kafka")
 Rel(delivery_service, notification_service, "Статус доставки", "Kafka")
 Rel(notification_service, customer, "Push-уведомления", "Webhook")
+
+}
+
+System_Boundary(Support, "Support`s Service"){
+System_Ext(kubernetes, "Kubernetes", "Оркестрация контейнеров")
+System_Ext(kafka, "Apache Kafka", "Передача событий между сервисами")
+Rel(kubernetes, marketplace, "Оркестрация")
+Rel(kafka, marketplace, "Обработка событий")
+}
+
 
 @enduml
