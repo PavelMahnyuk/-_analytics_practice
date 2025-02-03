@@ -18,7 +18,7 @@ entity "Товар" as Product {
     +category : ENUM
     +description : TEXT
     +price : DECIMAL(10,2)
-    +category_id : UUID [FK]
+    +stock_id : UUID [FK]
 }
 
 
@@ -36,6 +36,7 @@ entity "Запас товаров" as Stock {
     +warehouse_id : UUID [FK]
     +product_id : UUID [FK]
     +quantity : INT
+    +quantity_reserv: INT
 }
 
 entity "Заказ_пользователя" as Order {

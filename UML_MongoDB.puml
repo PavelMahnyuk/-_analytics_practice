@@ -1,63 +1,39 @@
 @startuml
-
-package MongoDB_Users {
-    entity "User" as MongoUser {
-        + _id : ObjectId [PK]
-    }
-    
-    entity "RegularUsers" as MongoRegularUsers <<collection>> {
-        + _id : ObjectId [PK]
-        --
-        + name : String
-        + email : String
-        + registration_date : DateTime
-        + address : String
-    }
-    
-    entity "PremiumUsers" as MongoPremiumUsers <<collection>> {
-        + _id : ObjectId [PK]
-        --
-        + name : String
-        + email : String
-        + registration_date : DateTime
-        + address : String
-        + subscription_start : DateTime
-        + subscription_level : String
-        + premium_features : List<String>
-    }
-    
-    
-    MongoUser *-- MongoRegularUsers : содержит
-    MongoUser *-- MongoPremiumUsers : содержит
+entity "Products" as Products <<Сущность>> {
+    + Id_project : UUID [PK]
+    + Name : VARCHAR(225)
+    + Description : TEXT
+    + Price : DECIMAL(10,2)
+    --
+    + Category : Object
+    + Customs_info : Object
 }
 
-package MongoDB_Products {
-    entity "Products" as MongoProducts {
-        + _id : ObjectId [PK]
-    }
-    entity "OwnProducts" as MongoOwnProducts <<collection>> {
-        + _id : ObjectId [PK]
-        --
-        + name : String
-        + description : String
-        + price : Decimal
-        + in_stock : Boolean
-        + warranty_period : String
-    }
-
-    entity "SupplierProducts" as MongoSupplierProducts <<collection>> {
-        + _id : ObjectId [PK]
-        --
-        + name : String
-        + description : String
-        + price : Decimal
-        + supplier_id : ObjectId
-        + import_date : DateTime
-        + customs_info : String
-    }
-
-    MongoProducts *-- MongoOwnProducts : содержит
-    MongoProducts *-- MongoSupplierProducts : содержит
+entity "Categories" as Categories <<Коллекция>> {
+    + category_id : UUID [PK]
+    + category_name : VARCHAR(100)
+    + category_description : TEXT
+    --
+    + category_rules : Object
 }
+
+entity "CustomsInfos" as CustomsInfo <<Коллекция>> {
+    + customs_id : UUID [PK]
+    + country : VARCHAR(100)
+    + customs_description : TEXT
+    + tariff_code : String
+}
+
+entity "CategoryRules" as CategoryRules <<Коллекция>> {
+    + rule_id : UUID [PK]
+    + rule_name : VARCHAR(100)
+    + rule_description : TEXT
+    + valid_from : DATE
+    + valid_to : DATE
+}
+
+Products *-- Categories : содержит (встраиваются)
+Products *-- CustomsInfo : содержит (встраиваются)
+Categories *-- CategoryRules : содержит (встраиваются)
 
 @enduml
