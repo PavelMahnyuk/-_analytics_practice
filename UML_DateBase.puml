@@ -1,0 +1,81 @@
+@startuml
+
+entity "Пользователь" as User {
+    +user_id : UUID [PK]
+    --
+    +email : VARCHAR(255) [UNIQUE]
+    +password_hash : VARCHAR(255)
+    +FirstName : VARCHAR(255)
+    +LastName: VARCHAR(255)
+    +phone : VARCHAR(11)
+    +address : VARCHAR(255)
+}
+
+entity "Товар" as Product {
+    +product_id : UUID [PK]
+    --
+    +name : VARCHAR(255)
+    +category : ENUM
+    +description : TEXT
+    +price : DECIMAL(10,2)
+    +category_id : UUID [FK]
+}
+
+
+entity "Склад&Магазин" as Warehouse {
+    +warehouse_id : UUID [PK]
+    --
+    +name : VARCHAR(255)
+    +location : TEXT
+    +is_own : BOOLEAN
+}
+
+entity "Запас товаров" as Stock {
+    +stock_id : UUID [PK]
+    --
+    +warehouse_id : UUID [FK]
+    +product_id : UUID [FK]
+    +quantity : INT
+}
+
+entity "Заказ_пользователя" as Order {
+    +order_id : UUID [PK]
+    --
+    +user_id : UUID [FK]
+    +product_id UUIF [FK]
+    +order_date : DATETIME
+    +status: ENUM
+    +total_price : DECIMAL(10,2)
+}
+
+
+entity "Доставка" as Delivery {
+    +delivery_id : UUID [PK]
+    --
+    +order_id : UUID [FK]
+    +method : VARCHAR(100)
+    +tracking_number : VARCHAR(100)
+    +status: ENUM)
+    +planned_date: DATE
+    +actual_date: DATE
+    +address: VARCHAR (255)
+}
+
+entity "Платёж" as Payment {
+    +payment_id : UUID [PK]
+    --
+    +order_id : UUID [FK]
+    +payment_method : VARCHAR(50)
+    +status : ENUM
+    +amount: DECIMAL(10,2)
+    +payment_date: DATETIME
+}
+
+User ||--o{ Order : "размещает"
+Order ||--|| Payment : "оплачивается"
+Order ||--|| Delivery : "доставляется"
+Warehouse ||--o{ Stock : "хранится"
+Product ||--|{ Stock : "находится в"
+Order ||--|{ Product: "имеет"
+
+@enduml

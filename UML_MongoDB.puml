@@ -1,0 +1,63 @@
+@startuml
+
+package MongoDB_Users {
+    entity "User" as MongoUser {
+        + _id : ObjectId [PK]
+    }
+    
+    entity "RegularUsers" as MongoRegularUsers <<collection>> {
+        + _id : ObjectId [PK]
+        --
+        + name : String
+        + email : String
+        + registration_date : DateTime
+        + address : String
+    }
+    
+    entity "PremiumUsers" as MongoPremiumUsers <<collection>> {
+        + _id : ObjectId [PK]
+        --
+        + name : String
+        + email : String
+        + registration_date : DateTime
+        + address : String
+        + subscription_start : DateTime
+        + subscription_level : String
+        + premium_features : List<String>
+    }
+    
+    
+    MongoUser *-- MongoRegularUsers : содержит
+    MongoUser *-- MongoPremiumUsers : содержит
+}
+
+package MongoDB_Products {
+    entity "Products" as MongoProducts {
+        + _id : ObjectId [PK]
+    }
+    entity "OwnProducts" as MongoOwnProducts <<collection>> {
+        + _id : ObjectId [PK]
+        --
+        + name : String
+        + description : String
+        + price : Decimal
+        + in_stock : Boolean
+        + warranty_period : String
+    }
+
+    entity "SupplierProducts" as MongoSupplierProducts <<collection>> {
+        + _id : ObjectId [PK]
+        --
+        + name : String
+        + description : String
+        + price : Decimal
+        + supplier_id : ObjectId
+        + import_date : DateTime
+        + customs_info : String
+    }
+
+    MongoProducts *-- MongoOwnProducts : содержит
+    MongoProducts *-- MongoSupplierProducts : содержит
+}
+
+@enduml
