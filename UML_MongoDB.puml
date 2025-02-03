@@ -1,15 +1,16 @@
 @startuml
-entity "Products" as Products <<Сущность>> {
+entity "Products" as Products <<Коллекция>> {
     + Id_project : UUID [PK]
     + Name : VARCHAR(225)
     + Description : TEXT
     + Price : DECIMAL(10,2)
+    + supplier_refs : Array<UUID>    ' Массив ссылок на документы из коллекции Suppliers
     --
     + Category : Object
     + Customs_info : Object
 }
 
-entity "Categories" as Categories <<Коллекция>> {
+entity "Categories" as Categories <<Вложенный объект>> {
     + category_id : UUID [PK]
     + category_name : VARCHAR(100)
     + category_description : TEXT
@@ -17,14 +18,14 @@ entity "Categories" as Categories <<Коллекция>> {
     + category_rules : Object
 }
 
-entity "CustomsInfos" as CustomsInfo <<Коллекция>> {
+entity "CustomsInfos" as CustomsInfo <<Вложенный объект>> {
     + customs_id : UUID [PK]
     + country : VARCHAR(100)
     + customs_description : TEXT
     + tariff_code : String
 }
 
-entity "CategoryRules" as CategoryRules <<Коллекция>> {
+entity "CategoryRules" as CategoryRules <<Вложенный объект>> {
     + rule_id : UUID [PK]
     + rule_name : VARCHAR(100)
     + rule_description : TEXT
@@ -32,8 +33,21 @@ entity "CategoryRules" as CategoryRules <<Коллекция>> {
     + valid_to : DATE
 }
 
+entity "Suppliers" as Suppliers <<Коллекция>> {
+    + supplier_id : UUID [PK]
+    + supplier_name : VARCHAR(100)
+    + contact_person : VARCHAR(100)
+    + phone : VARCHAR(20)
+    + email : VARCHAR(100)
+    + address : TEXT
+    + website : VARCHAR(255)
+    + rating : DECIMAL(3,2)
+    + active : BOOLEAN
+}
+
 Products *-- Categories : содержит (встраиваются)
 Products *-- CustomsInfo : содержит (встраиваются)
 Categories *-- CategoryRules : содержит (встраиваются)
+Products --> Suppliers : ссылается на (массив)
 
 @enduml
