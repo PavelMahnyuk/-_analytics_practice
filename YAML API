@@ -102,7 +102,7 @@ paths:
           description: Неавторизованный запрос
         '404':
           description: Продукт не найден        
-  /cart:
+  /carts:
     post:
       summary: Добавление товара в корзину
       description: >
@@ -135,7 +135,7 @@ paths:
           description: Неавторизованный запрос
         '404':
           description: Товар не найден        
-  /cart/{productID}:
+  /carts/{productID}:
     delete:
       summary: Удаление товара из корзины
       description: >
@@ -246,9 +246,15 @@ components:
     OrderRequest:
       type: object
       required:
+        - products
         - deliveryMethod
         - paymentMethod
       properties:
+        products:
+          type: array
+          description: Список товаров, которые пользователь хочет заказать
+          items:
+            $ref: '#/components/schemas/OrderItem'  
         deliveryMethod:
           type: string
           description: Способ получения заказа
@@ -271,6 +277,20 @@ components:
           type: string
           description: Комментарий к заказу
           example: "Пожалуйста, доставьте после 18:00"
+    OrderItem:
+      type: object
+      required:
+        - productID
+        - quantity
+      properties:
+        productID:
+          type: string
+          description: Идентификатор товара
+          example: "12345"
+        quantity:
+          type: integer
+          description: Количество товара
+          example: 2
     OrderResponse:
       type: object
       properties:
