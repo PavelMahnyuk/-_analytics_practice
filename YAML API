@@ -1,0 +1,289 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/dunice-2cf/TestProject/1.0.0
+  - description: Тестовая среда
+    url: https://test.dunice.com/api
+  - description: Рабочая среда
+    url: https://dunice.com/api
+info:
+  title: API интернет-магазина
+  version: "1.0.0"
+paths:
+  /products/search:
+    get:
+      summary: Получение списка продуктов
+      description: >
+        Позволяет пользователю получить определенное число схожих товаров по введенному запросу.
+        Фильтрация возможна по категории, цене или рейтингу.
+      operationId: searchProducts
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Поисковый запрос (название товара)
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Фильтрация по категории
+          schema:
+            type: string
+        - name: price_min
+          in: query
+          required: false
+          description: Минимальная цена для фильтрации
+          schema:
+            type: number
+            format: float
+        - name: price_max
+          in: query
+          required: false
+          description: Максимальная цена для фильтрации
+          schema:
+            type: number
+            format: float
+        - name: rating
+          in: query
+          required: false
+          description: Фильтрация по рейтингу
+          schema:
+            type: number
+            format: float
+      security:
+        - OAuth2: [read]
+      responses:
+        '200':
+          description: Успешное получение списка продуктов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '500':
+          description: Ошибка сервера
+  /products/{productId}:
+    get:
+      summary: Получение деталей конкретного продукта
+      description: >
+        Позволяет получить подробную информацию о выбранном товаре.
+        Здесь {productId} – это идентификатор продукта.
+      operationId: getProductDetails
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Идентификатор продукта
+          schema:
+            type: string
+            example: "12345"
+      security:
+        - OAuth2: [read]
+      responses:
+        '200':
+          description: Успешное получение деталей продукта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Продукт не найден        
+  /cart:
+    post:
+      summary: Добавление товара в корзину
+      description: >
+        Позволяет пользователю добавить выбранный товар в корзину.
+        Тело запроса должно содержать идентификатор товара и его количество.
+      operationId: addProductToCart
+      security:
+        - OAuth2: [write]
+      requestBody:
+        description: Объект с информацией о товаре для добавления в корзину
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItem'
+      responses:
+        '200':
+          description: Товар успешно добавлен в корзину
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Товар успешно добавлен в корзину."
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Товар не найден        
+  /cart/{productID}:
+    delete:
+      summary: Удаление товара из корзины
+      description: >
+        Позволяет удалить конкретный товар из корзины пользователя по его идентификатору.
+      operationId: removeProductFromCart
+      parameters:
+        - name: productID
+          in: path
+          required: true
+          description: Идентификатор товара в корзине
+          schema:
+            type: string
+            example: "12345"
+      security:
+        - OAuth2: [write]
+      responses:
+        '200':
+          description: Товар успешно удалён из корзины
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Товар успешно удалён из корзины."
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Товар не найден в корзине        
+  /orders:
+    post:
+      summary: Оформление заказа
+      description: >
+        Позволяет пользователю оформить заказ на товары, находящиеся в корзине.
+        Тело запроса содержит информацию о доставке, оплате и комментарий пользователя.
+      operationId: createOrder
+      security:
+        - OAuth2: [write]
+      requestBody:
+        description: Данные для оформления заказа
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '422':
+          description: Ошибка валидации данных (например, пустая корзина)          
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes:
+            read: Доступ для чтения данных
+            write: Доступ для записи данных
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "iPhone"
+        category:
+          type: string
+          example: "Электроника"
+        price:
+          type: number
+          format: float
+          example: 70000
+        rating:
+          type: number
+          format: float
+          example: 4.5
+    CartItem:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          description: Идентификатор товара
+          example: "12345"
+        quantity:
+          type: integer
+          description: Количество товара для добавления в корзину
+          example: 1      
+    OrderRequest:
+      type: object
+      required:
+        - deliveryMethod
+        - paymentMethod
+      properties:
+        deliveryMethod:
+          type: string
+          description: Способ получения заказа
+          enum:
+            - "Самовывоз"  
+            - "Доставка курьером"
+          example: "courier"
+        address:
+          type: string
+          description: Адрес доставки (только если выбрана доставка курьером)
+          example: "Москва, ул. Ленина, д. 10, кв. 5"
+        paymentMethod:
+          type: string
+          description: Способ оплаты
+          enum:
+            - "card"  
+            - "cash"  
+          example: "card"
+        comment:
+          type: string
+          description: Комментарий к заказу
+          example: "Пожалуйста, доставьте после 18:00"
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Уникальный идентификатор заказа
+          example: "ORD-20240210-00123"
+        status:
+          type: string
+          description: Статус заказа
+          example: "created"
+        estimatedDelivery:
+          type: string
+          format: date-time
+          description: Ожидаемая дата доставки
+          example: "2025-02-12T15:00:00Z"
