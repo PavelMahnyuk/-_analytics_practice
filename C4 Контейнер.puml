@@ -1,0 +1,148 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Диаграмма контейнеров C4 для маркетплейса
+
+Person(customer, "Покупатель", "Клиент, совершающий покупки")
+
+System_Boundary(OutSider_Serbice, "Внешние сервисы") {
+    System_Ext(bank, "Платежная система", "Сбербанк/Тинькофф")
+    System_Ext(logistics, "Служба доставки", "СДЭК/Почта России")
+    System_Ext(supplier, "Система поставщика", "API")
+}
+
+System_Boundary(marketplace, "E-commerce Marketplace") {
+    ' Домен пользователей
+    System_Boundary(user_domain, "User Domain") {
+        System(user_service, "User Service", "Обрабатывает авторизацию и профили")
+        ContainerDb(client_db, "PostgreSQL", "Профили клиентов, история заказов")
+        Rel(user_service, client_db, "Профили клиентов")
+    
+        ' Шлюз маршрутизации и Redis Cluster
+        System_Boundary(redis_cluster, "Redis Cluster") {
+            Container(redis_gateway, "Redis Gateway", "Proxy", "Маршрутизатор запросов к шардам")
+            ' Шард сессий
+            System_Boundary(redis_sessions, "Reddis Sessions") {      
+                ContainerDb(sessions_master, "Redis", "Сессии\nMaster", "shard=1")
+                ContainerDb(sessions_slave1, "Redis", "Replica 1", "shard=1")
+                ContainerDb(sessions_slave2, "Redis", "Replica 2", "shard=1")
+            }    
+            ' Шард кэша
+            System_Boundary(redis_cache, "Reddis Cache") {      
+                ContainerDb(cache_master, "Redis", "Кэш\nMaster", "shard=2")
+                ContainerDb(cache_slave1, "Redis", "Replica 1", "shard=2")
+                ContainerDb(cache_slave2, "Redis", "Replica 2", "shard=2")
+            }    
+            ' Шард рекомендаций
+            System_Boundary(redis_recom, "Reddis Recom") {      
+                ContainerDb(recom_master, "Redis", "Рекомендации\nMaster", "shard=3")
+                ContainerDb(recom_slave1, "Redis", "Replica 1", "shard=3")
+                ContainerDb(recom_slave2, "Redis", "Replica 2", "shard=3")
+            }
+        }
+    }
+    ' Связь User Service -> Redis Gateway
+    Rel(user_service, redis_gateway, "Кэш сессий")
+    Rel(redis_gateway, sessions_master, "Ключи сессий")
+    Rel(redis_gateway, cache_master, "Ключи кэша")
+    Rel(redis_gateway, recom_master, "Ключи рекомендаций")
+    
+    ' Синхронизация реплик
+    Rel(sessions_master, sessions_slave1, "Асинхронная\nрепликация")
+    Rel(sessions_master, sessions_slave2, "Асинхронная\nрепликация")
+    Rel(cache_master, cache_slave1, "Асинхронная\nрепликация")
+    Rel(cache_master, cache_slave2, "Асинхронная\nрепликация")
+    Rel(recom_master, recom_slave1, "Асинхронная\nрепликация")
+    Rel(recom_master, recom_slave2, "Асинхронная\nрепликация")
+           
+    ' Домен продаж
+    System_Boundary(sales_domain, "Sales Domain") {
+        System(product_catalog, "Product Catalog", "Каталог товаров, Node.js")
+        ContainerDb(product_db, "MongoDB", "Товары, отзывы, изображения")
+        
+        System(order_service, "Order Service", "Оформление заказов, Go")
+        ContainerDb(order_db, "PostgreSQL", "Заказы, статусы, история")
+        
+        System(payment_service, "Payment Service", "Обработка платежей, Java")
+        ContainerDb(payment_db, "PostgreSQL", "Транзакции, возвраты")
+    }
+    
+    ' Логистический домен
+    System_Boundary(logistic_domain, "Logistic Domain") {
+        System(inventory_service, "Inventory Service", "Управление запасами, Python")
+        ContainerDb(inventory_db, "PostgreSQL", "Остатки, резервы")
+        
+        System(delivery_service, "Delivery Service", "Логистика, C#")
+        ContainerDb(delivery_db, "PostgreSQL", "Данные доставок")
+        ContainerDb(neo4j, "Neo4j", "Оптимизация маршрутов")
+    }
+    
+    ' Аналитический домен
+    System_Boundary(analytic_domain, "Analytic Domain") {
+        System(analytics_service, "Analytics Service", "Аналитика, Python")
+        ContainerDb(clickhouse, "ClickHouse", "Аналитические данные")
+        ' Log Service и его БД удаляются из Analytic Domain
+    }
+    
+    ' Недоменные сервисы
+    System(notification_service, "Notification Service", "Node.js")
+    ContainerDb(notify_redis, "Redis", "Очереди уведомлений")
+    
+    System(api_gateway, "API Gateway", "NGINX")
+    
+    ' Log Service перемещён вне доменов (на том же уровне, что и Notification Service)
+    System(log_service, "Log Service", "Мониторинг, ELK")
+    ContainerDb(elastic, "Elasticsearch", "Логи, дашборды")
+    ' Связь Log Service с его БД
+    Rel(log_service, elastic, "Хранит логи")
+    
+    ' Связи сервисов с БД
+    Rel(product_catalog, product_db, "Хранит данные")
+    Rel(order_service, order_db, "Сохраняет заказы")
+    Rel(payment_service, payment_db, "Записывает транзакции")
+    Rel(inventory_service, inventory_db, "Обновляет остатки")
+    Rel(delivery_service, delivery_db, "Данные доставок")
+    Rel(delivery_service, neo4j, "Оптимизация маршрутов")
+    
+    Rel(analytics_service, clickhouse, "Аналитика данных")
+    Rel(notification_service, notify_redis, "Очереди")
+    
+    ' Взаимодействия пользователя
+    Rel(customer, api_gateway, "HTTPS", "Все запросы")
+    
+    ' Внутренние взаимодействия
+    Rel(api_gateway, product_catalog, "Поиск товаров", "Rest API")
+    Rel(api_gateway, order_service, "Создание заказов", "Rest API")
+    Rel(order_service, inventory_service, "Резервирование", "Kafka")
+    Rel(order_service, payment_service, "Оплата", "Rest API")
+    Rel(order_service, delivery_service, "Инициирование доставки", "Kafka")
+    Rel(delivery_service, logistics, "Данные доставки", "JSON API")
+    Rel(inventory_service, supplier, "Синхронизация остатков", "Rest API")
+    Rel(payment_service, bank, "Транзакции", "PCI-DSS")
+    Rel(api_gateway, user_service, "Авторизация", "Rest API")
+    Rel(user_service, order_service, "Отправка JWT пользователя")
+    
+    Rel(product_catalog, analytics_service, "Передача данных о просмотрах", "Kafka")
+    Rel(order_service, analytics_service, "Передача данных о заказах", "Kafka")
+    Rel(analytics_service, inventory_service, "Автопополнение запасов", "Kafka")
+    
+    Rel(payment_service, notification_service, "Статус оплаты", "Kafka")
+    Rel(delivery_service, notification_service, "Статус доставки", "Kafka")
+    Rel(notification_service, customer, "Push-уведомления", "Webhook")
+    
+    ' --- Потоки логов от доменов и Notification Service к Log Service ---
+    ' Из User Domain (например, от User Service)
+    Rel(user_domain, log_service, "Логи")
+    ' Из Sales Domain (например, от Product Catalog)
+    Rel(logistic_domain, log_service, "Логи")
+    ' Из Logistic Domain (например, от Inventory Service)
+    Rel(sales_domain, log_service, "Логи")
+    ' Из Analytic Domain (например, от Analytics Service)
+    Rel(analytic_domain, log_service, "Логи")
+    ' Из Notification Service
+    Rel(notification_service, log_service, "Логи")
+}
+
+@enduml

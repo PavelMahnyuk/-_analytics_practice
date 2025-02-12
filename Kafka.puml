@@ -1,0 +1,33 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+Container(order_service, "Order Service", "Микросервис", "Обработка заказов")
+Container(inventory_service, "Inventory Service", "Микросервис", "Управление запасами")
+Container(delivery_service, "Delivery Service", "Микросервис", "Доставка заказов")
+Container(product_catalog, "Product Catalog", "Микросервис", "Каталог товаров")
+Container(analytics_service, "Analytics Service", "Микросервис", "Анализ данных")
+Container(payment_service, "Payment Service", "Микросервис", "Обработка платежей")
+Container(notification_service, "Notification Service", "Микросервис", "Уведомления")
+
+ContainerQueue(queue, "Брокер", "Apache Kafka", "Очередь запросов")
+
+Rel(order_service, queue, "Отправка данных о резервировании товара")
+Rel(queue, inventory_service, "Получение данных о резервировании товара")
+
+Rel(order_service, queue, "Отправка данных об инициирование доставки")
+Rel(queue, delivery_service, "Получение данных об инициирование доставки")
+
+Rel(product_catalog, queue, "Передача данных о просмотрах товаров")
+Rel(queue, analytics_service, "Получение данных о просмотрах товаров")
+
+Rel(order_service, queue, "Передача данных о заказах пользователей")
+Rel(queue, analytics_service, "Получение данных о заказах пользователей")
+
+Rel(analytics_service, queue, "Отправка данных для автопополнения запасов на основе аналитики")
+Rel(queue, inventory_service, "Получение данных для автопополнения запасов на основе аналитики")
+
+Rel(payment_service, queue, "Отправка данных о статусе оплаты пользователя")
+Rel(queue, notification_service, "Получение данных о статусе оплаты пользователя")
+
+Rel(delivery_service, queue, "Отправка данных о статусе доставки пользователя")
+Rel(queue, notification_service, "Получение данных о статусе доставки пользователя")
+@enduml
