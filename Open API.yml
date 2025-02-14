@@ -388,7 +388,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RefreshTokenResponse'
+                $ref: '#/components/schemas/AuthResponse2'
         '401':
           description: Невалидный или истёкший Refresh токен
         '500':
