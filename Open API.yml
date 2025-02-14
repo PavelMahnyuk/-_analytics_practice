@@ -1,0 +1,651 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/dunice-2cf/TestProject/1.0.0
+  - description: Тестовая среда
+    url: https://test.dunice.com/api
+  - description: Рабочая среда
+    url: https://dunice.com/api
+info:
+  title: API интернет-магазина
+  version: "1.0.0"
+tags:
+  - name: orders
+    description: Операции с заказами и товарами
+  - name: users
+    description: Операции с пользователями
+paths:
+  /products/search:
+    get:
+      tags:
+        - orders
+      summary: Получение списка продуктов
+      description: >
+        Позволяет пользователю получить определенное число схожих товаров по введенному запросу.
+        Фильтрация возможна по категории, цене или рейтингу.
+      operationId: searchProducts
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Поисковый запрос (название товара)
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Фильтрация по категории
+          schema:
+            type: string
+        - name: price_min
+          in: query
+          required: false
+          description: Минимальная цена для фильтрации
+          schema:
+            type: number
+            format: float
+        - name: price_max
+          in: query
+          required: false
+          description: Максимальная цена для фильтрации
+          schema:
+            type: number
+            format: float
+        - name: rating
+          in: query
+          required: false
+          description: Фильтрация по рейтингу
+          schema:
+            type: number
+            format: float
+      security:
+        - OAuth2: [read]
+      responses:
+        '200':
+          description: Успешное получение списка продуктов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '500':
+          description: Ошибка сервера
+  /products/{productId}:
+    get:
+      tags:
+        - orders
+      summary: Получение деталей конкретного продукта
+      description: >
+        Позволяет получить подробную информацию о выбранном товаре.
+        Здесь {productId} – это идентификатор продукта.
+      operationId: getProductDetails
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: Идентификатор продукта
+          schema:
+            type: string
+            example: "12345"
+      security:
+        - OAuth2: [read]
+      responses:
+        '200':
+          description: Успешное получение деталей продукта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Продукт не найден        
+  /carts:
+    post:
+      tags:
+        - orders
+      summary: Добавление товара в корзину
+      description: >
+        Позволяет пользователю добавить выбранный товар в корзину.
+        Тело запроса должно содержать идентификатор товара и его количество.
+      operationId: addProductToCart
+      security:
+        - OAuth2: [write]
+      requestBody:
+        description: Объект с информацией о товаре для добавления в корзину
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItem'
+      responses:
+        '200':
+          description: Товар успешно добавлен в корзину
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Товар успешно добавлен в корзину."
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Товар не найден        
+  /carts/{productID}:
+    delete:
+      tags:
+        - orders
+      summary: Удаление товара из корзины
+      description: >
+        Позволяет удалить конкретный товар из корзины пользователя по его идентификатору.
+      operationId: removeProductFromCart
+      parameters:
+        - name: productID
+          in: path
+          required: true
+          description: Идентификатор товара в корзине
+          schema:
+            type: string
+            example: "12345"
+      security:
+        - OAuth2: [write]
+      responses:
+        '200':
+          description: Товар успешно удалён из корзины
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Товар успешно удалён из корзины."
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '404':
+          description: Товар не найден в корзине        
+  /orders:
+    post:
+      tags:
+        - orders
+      summary: Оформление заказа
+      description: >
+        Позволяет пользователю оформить заказ на товары, находящиеся в корзине.
+        Тело запроса содержит информацию о доставке, оплате и комментарий пользователя.
+      operationId: createOrder
+      security:
+        - OAuth2: [write]
+      requestBody:
+        description: Данные для оформления заказа
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Некорректный запрос
+        '401':
+          description: Неавторизованный запрос
+        '422':
+          description: Ошибка валидации данных (например, пустая корзина)          
+  /auth/register:
+    post:
+      tags:
+        - users
+      summary: Регистрация пользователя
+      description: >
+        Позволяет пользователю создать профиль в системе. После успешной регистрации
+        автоматически выполняется авторизация, и возвращаются Access и Refresh токены.
+      operationId: registerUser
+      requestBody:
+        description: Данные для регистрации нового пользователя
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Профиль успешно создан. Пользователь авторизован.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '409':
+          description: Конфликт (например, e-mail уже зарегистрирован)
+        '500':
+          description: Внутренняя ошибка сервера
+  /auth/authorization:
+    post:
+      tags:
+        - users
+      summary: Авторизация пользователя
+      description: >
+        Позволяет зарегистрированному пользователю войти в систему, отправив email и пароль.
+        В случае успешной авторизации сервер возвращает Access и Refresh токены.
+      operationId: loginUser
+      requestBody:
+        description: Данные для авторизации пользователя
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешная авторизация. Возвращает Access и Refresh токены.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse2'
+        '401':
+          description: Неверный email или пароль
+        '500':
+          description: Внутренняя ошибка сервера  
+  /auth/logout:
+    post:
+      tags: 
+        - users
+      summary: Выход из системы
+      description: >
+        Позволяет пользователю выйти из системы, передав Refresh токен. 
+        Сервер добавляет этот токен в "чёрный список", чтобы его нельзя было использовать повторно.
+      operationId: logoutUser
+      requestBody:
+        description: Refresh токен, который нужно деактивировать
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        '200':
+          description: Пользователь успешно вышел из системы.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '401':
+          description: Недействительный или уже отозванный Refresh токен
+        '500':
+          description: Внутренняя ошибка сервера
+  /auth/password/reset-request:
+    post:
+      tags: 
+        - users
+      summary: Запрос на сброс пароля
+      description: >
+        Позволяет пользователю запросить сброс пароля. Сервер генерирует токен сброса 
+        пароля и отправляет его на email пользователя.
+      operationId: requestPasswordReset
+      requestBody:
+        description: Электронная почта пользователя для получения ссылки сброса пароля
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Инструкция по сбросу пароля отправлена на email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+        '404':
+          description: Пользователь с таким email не найден
+        '500':
+          description: Внутренняя ошибка сервера
+  /auth/password/reset:
+    post:
+      tags: 
+        - users
+      summary: Сброс пароля
+      description: >
+        Позволяет пользователю задать новый пароль, отправив токен сброса и новый пароль.
+        После успешного сброса происходит автоматическая авторизация, и сервер возвращает
+        новые Access и Refresh токены.
+      operationId: resetPassword
+      requestBody:
+        description: Данные для сброса пароля
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordConfirmRequest'
+      responses:
+        '200':
+          description: Пароль успешно изменён, возвращает новые токены.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse2'
+        '401':
+          description: Неверный или истёкший токен сброса пароля
+        '500':
+          description: Внутренняя ошибка сервера
+  /auth/check-auth:
+    get:
+      tags: 
+        - users
+      summary: Проверка авторизации пользователя
+      description: >
+        Позволяет определить, авторизован ли пользователь в системе. 
+        Для проверки используется Access токен, который передаётся в заголовке Authorization.
+      operationId: checkAuth
+      responses:
+        '200':
+          description: Пользователь авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthCheckResponse'
+        '401':
+          description: Пользователь неавторизован (токен недействителен или отсутствует)
+        '500':
+          description: Внутренняя ошибка сервера
+  /auth/refresh-token:
+    post:
+      tags: 
+        - users
+      summary: Обновление Access токена пользователя
+      description: >
+        Позволяет обновить Access токен пользователя при помощи действительного Refresh токена.
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        '200':
+          description: Успешное обновление Access токена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: Невалидный или истёкший Refresh токен
+        '500':
+          description: Внутренняя ошибка сервера
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://example.com/oauth/authorize
+          tokenUrl: https://example.com/oauth/token
+          scopes:
+            read: Доступ для чтения данных
+            write: Доступ для записи данных
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "iPhone"
+        category:
+          type: string
+          example: "Электроника"
+        price:
+          type: number
+          format: float
+          example: 70000
+        rating:
+          type: number
+          format: float
+          example: 4.5
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          description: Идентификатор товара
+          example: "12345"
+        quantity:
+          type: integer
+          description: Количество товара для добавления в корзину
+          example: 1      
+    OrderRequest:
+      type: object
+      required:
+        - products
+        - deliveryMethod
+        - paymentMethod
+      properties:
+        products:
+          type: array
+          description: Список товаров, которые пользователь хочет заказать
+          items:
+            $ref: '#/components/schemas/OrderItem'  
+        deliveryMethod:
+          type: string
+          description: Способ получения заказа
+          enum:
+            - "Самовывоз"  
+            - "Доставка курьером"
+          example: "courier"
+        address:
+          type: string
+          description: Адрес доставки (только если выбрана доставка курьером)
+          example: "Москва, ул. Ленина, д. 10, кв. 5"
+        paymentMethod:
+          type: string
+          description: Способ оплаты
+          enum:
+            - "card"  
+            - "cash"  
+          example: "card"
+        comment:
+          type: string
+          description: Комментарий к заказу
+          example: "Пожалуйста, доставьте после 18:00"
+    OrderItem:
+      type: object
+      required:
+        - productID
+        - quantity
+      properties:
+        productID:
+          type: string
+          description: Идентификатор товара
+          example: "12345"
+        quantity:
+          type: integer
+          description: Количество товара
+          example: 2
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Уникальный идентификатор заказа
+          example: "ORD-20240210-00123"
+        status:
+          type: string
+          description: Статус заказа
+          example: "created"
+        estimatedDelivery:
+          type: string
+          format: date-time
+          description: Ожидаемая дата доставки
+          example: "2025-02-12T15:00:00Z"
+    RegisterRequest:
+      type: object
+      required:
+        - lastName
+        - firstName
+        - email
+        - password
+        - birthDate
+      properties:
+        lastName:
+          type: string
+          description: Фамилия пользователя
+          example: "Махнюк"
+        firstName:
+          type: string
+          description: Имя пользователя
+          example: "Павел"
+        middleName:
+          type: string
+          description: Отчество пользователя (необязательное поле)
+          example: "Александрович"
+        birthDate:
+          type: string
+          format: date
+          description: Дата рождения пользователя
+          example: "2000-01-29"
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя (используется как логин)
+          example: "pavel@mail.ru"
+        password:
+          type: string
+          format: password
+          description: Пароль (должен соответствовать политикам безопасности)
+          example: "SecurePass123!"
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение об успешной регистрации
+          example: "Профиль успешно создан."
+        accessToken:
+          type: string
+          description: JWT Access токен для авторизации
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: JWT Refresh токен для обновления Access токена
+          example: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ=="
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          example: "pavel@mail.ru"
+        password:
+          type: string
+          format: password
+          description: Пароль пользователя
+          example: "SecurePass123!"
+    AuthResponse2:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT Access токен для авторизации (живет 1 минуту)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: JWT Refresh токен для обновления Access токена (живет 15 минут)
+          example: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ=="  
+    RefreshToken:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh токен
+          example: "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4gZXhhbXBsZQ=="
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение о выходе из системы
+          example: "Вы успешно вышли из системы."   
+    ResetPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          example: "pavel@mail.ru"
+    ResetPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Сообщение о результате запроса
+          example: "Инструкция по сбросу пароля отправлена на ваш email."
+    ResetPasswordConfirmRequest:
+      type: object
+      required:
+        - resetToken
+        - newPassword
+      properties:
+        resetToken:
+          type: string
+          description: Токен сброса пароля, полученный из email
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        newPassword:
+          type: string
+          format: password
+          description: Новый пароль пользователя
+          example: "NewSecurePass123!"      
+    AuthCheckResponse:
+      type: object
+      properties:
+        isAuthenticated:
+          type: boolean
+          description: Флаг, указывающий, авторизован ли пользователь
+          example: true
+        userId:
+          type: string
+          description: Уникальный идентификатор пользователя
+          example: "123456789"
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          example: "pavel@mail.ru"      
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: Новый Access токен
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
